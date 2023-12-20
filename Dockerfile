@@ -1,8 +1,4 @@
 ARG NODE_TAG="lts-bullseye"
-ARG USER_UID=1
-ARG USER="ashx"
-ARG GROUP="gnode"
-ARG PATH="1000"
 
 FROM node:${NODE_TAG}
 LABEL description="Node perfect Container" \
@@ -13,8 +9,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
 
 # environment variables 
-ENV DEBIAN_FRONTEND=noninteractive \
-    SHELL=/bin/zsh \
+ENV SHELL=/bin/zsh \
     NODE_ENV=development \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
@@ -42,15 +37,18 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # user setup
 
 ENV HOME=/home/ashx\
+    USER=ashx \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 
     
-RUN useradd -rm -d /home/ashx -s /bin/bash -g root -G sudo -u 1001 ashx && chmod 0440 /etc/sudoers.d/$USERNAME
-RUN echo 'ashx ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ashx-nopasswd
-USER ashx
-WORKDIR /home/ashx
-
+RUN useradd -rm -d /home/${USER} -s /bin/bash -g root -G sudo -u 1001 ${USER} && chmod 0440 /etc/sudoers.d/$USERNAME
+RUN echo 'ashx ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${USER}-nopasswd
+USER ${USER} 
+WORKDIR /home/${USER}
+RUN echo ${USER}
+RUN echo $USERNAME
+RUN echo ${USER_UID}
 
 # zsh setup 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" <<< $'\n'
@@ -72,18 +70,41 @@ RUN echo '# pnpm' >> ~/.zshrc \
     && echo '  *) export PATH="$PNPM_HOME:$PATH" ;;' >> ~/.zshrc \
     && echo 'esac' >> ~/.zshrc
 
+
+# Add alias configurations to the .zshrc file
+RUN echo 'alias \
+    c="clear" \
+    ka="killall" \
+    sdn="shutdown -h now" \
+    e="$EDITOR" \
+    a="apt-get" \
+    i="sudo apt-get install" \
+    g="git" \
+    v="nvim" \
+    ts="pnpm ts-node" \
+    t="touch" \
+    reload=". ~/.zshrc" \
+    y="rm -rf" \
+    b="cd .."  \
+    bb="cd ..."   \
+    bbb="cd ...."   \
+    bbbb="cd ....."  \
+    bbbbb="cd ....." \
+    x="chmod +x" \
+    ls="ls -hN --color=auto --group-directories-first" \
+    grep="grep --color=auto" \
+    diff="diff --color=auto" \
+    ccat="highlight --out-format=ansi" \
+    ip="ip -color=auto" \
+    ' >> ~/.zshrc
+
+
+
 RUN source ~/.zshrc
 
 # playwright installation 
 # you can install playwright with pnpm by running 
 # pnpm exec playwright install  
-
-# Create default user wtih name "node"
-#RUN groupadd -g ${USER_UID} ${GROUP} \
-#     && useradd -m -s /bin/zsh -u ${USER_UID} -g ${GROUP} ${USER} \
-#     && chmod g+w /etc/passwd
-
-# Enble zsh
 
 # set default user shell
 ENV SHELL=/bin/zsh
@@ -91,5 +112,5 @@ ENV SHELL=/bin/zsh
 # Configure container startup
 # CMD ["/bin/zsh"]
 RUN . $HOME/.zshrc
-ENTRYPOINT [ "/bin/zsh" ]
+#ENTRYPOINT [ "/bin/zsh" ]
 CMD ["zsh", "-c", "sleep infinity"]
