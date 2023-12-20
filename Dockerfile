@@ -1,12 +1,13 @@
 ARG NODE_TAG="lts-bullseye"
 ARG USER_UID=1
-ARG USER="node"
-ARG GROUP="node"  # Add the missing GROUP argument
+ARG USER="ashx"
+ARG GROUP="gnode"
 ARG PATH="1000"
 
 FROM node:${NODE_TAG}
-LABEL description="Node perfect Container"
-
+LABEL description="Node perfect Container" \
+      maintainer="ashgw"
+MAINTAINER ashgw
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
@@ -25,7 +26,7 @@ RUN apt-get update --fix-missing
 
 
 # necessary packages 
-RUN apt-get -y install wget curl git zsh 
+RUN apt-get -y install wget curl git zsh sudo 
 
 #playwright dependencies for GUI workings 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -38,46 +39,57 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     libxdamage1 libxss1 libxtst6 libappindicator1 libnss3 libasound2 \
     libatk1.0-0 libc6 libdrm-dev libgbm-dev ca-certificates fonts-liberation lsb-release xdg-utils
 
+# user setup
+
+ENV HOME=/home/ashx\
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8 
+    
+RUN useradd -rm -d /home/ashx -s /bin/bash -g root -G sudo -u 1001 ashx
+USER ashx
+WORKDIR /home/ashx
+
 
 # zsh setup 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" <<< $'\n'
 
-
-RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
-    && locale-gen
-
 # Configure environment
-ENV HOME=/home/${USER} \
-    LANG=en_US.UTF-8 \
-    LANGUAGE=en_US.UTF-8 \
-    LC_ALL=en_US.UTF-8 \
-    SHELL=/bin/zsh
+
 
 
 # pnpm installation 
 
-RUN wget -qO- https://get.pnpm.io/install.sh | sh - \
-    && echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc \
-    && echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.zshrc \
-    && source ~/.zshrc
+# Install pnpm
+RUN wget -qO- https://get.pnpm.io/install.sh | sh -
 
-RUN source ~./zshrc
+# Update the PATH in the ~/.zshrc
+RUN echo '# pnpm' >> ~/.zshrc \
+    && echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc \
+    && echo 'case ":$PATH:" in' >> ~/.zshrc \
+    && echo '  *":$PNPM_HOME:"*) ;;' >> ~/.zshrc \
+    && echo '  *) export PATH="$PNPM_HOME:$PATH" ;;' >> ~/.zshrc \
+    && echo 'esac' >> ~/.zshrc
+
+RUN source ~/.zshrc
 
 # playwright installation 
-RUN pnpm exec playwright install  
-
-# Enable prompt color
-RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc
-
+# you can install playwright with pnpm by running 
+# pnpm exec playwright install  
 
 # Create default user wtih name "node"
-RUN groupadd -g ${USER_UID} ${GROUP} \
-    && useradd -m -s /bin/zsh -u ${USER_UID} -g ${GROUP} ${USER} \
-    && chmod g+w /etc/passwd
+#RUN groupadd -g ${USER_UID} ${GROUP} \
+#     && useradd -m -s /bin/zsh -u ${USER_UID} -g ${GROUP} ${USER} \
+#     && chmod g+w /etc/passwd
 
-# Switch to user 
-USER ${USER}
-WORKDIR ${HOME}
+# Enble zsh
+
+# set default user shell
+ENV SHELL=/bin/zsh
 
 # Configure container startup
-CMD ["/bin/zsh"]
+# CMD ["/bin/zsh"]
+RUN  zsh
+RUN . $HOME/.zshrc
+
+CMD ["zsh", "-c", "sleep infinity"]
