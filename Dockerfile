@@ -46,7 +46,8 @@ ENV HOME=/home/ashx\
     LANGUAGE=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 
     
-RUN useradd -rm -d /home/ashx -s /bin/bash -g root -G sudo -u 1001 ashx
+RUN useradd -rm -d /home/ashx -s /bin/bash -g root -G sudo -u 1001 ashx && chmod 0440 /etc/sudoers.d/$USERNAME
+RUN echo 'ashx ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ashx-nopasswd
 USER ashx
 WORKDIR /home/ashx
 
@@ -89,7 +90,6 @@ ENV SHELL=/bin/zsh
 
 # Configure container startup
 # CMD ["/bin/zsh"]
-RUN  zsh
 RUN . $HOME/.zshrc
-
+ENTRYPOINT [ "/bin/zsh" ]
 CMD ["zsh", "-c", "sleep infinity"]
