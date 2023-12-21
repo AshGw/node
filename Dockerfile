@@ -7,16 +7,22 @@ MAINTAINER ashgw
 # current shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# switch to root for base setup
+# switch to root for initial setup
 USER root
+
+# the working user 
 ARG USER=ashgw
 # Update repo
 RUN apt-get update --fix-missing
 
 # necessary packages 
-RUN apt-get -y install wget curl git zsh sudo neovim
+RUN apt-get -y install wget curl git zsh sudo neovim locales 
 
-# playwright dependencies so browsers work from within the container 
+# locale setup
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen
+
+# dependencies so browsers show with no distortion  from within the container to the host machine 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     gconf-service \
@@ -63,9 +69,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 ENV SHELL=/bin/zsh \
     NODE_ENV=development \
     HOME=/home/${USER}\
+    LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
-    LC_ALL=en_US.UTF-8 \ 
-    LANG=en_US.UTF-8
+    LC_ALL=en_US.UTF-8 
 
 # for passwordless sudo 
 RUN useradd -rm -d ${HOME} -s /bin/bash -g root -G sudo -u 1001 ${USER} && chmod 0440 /etc/sudoers.d/$USERNAME
@@ -76,14 +82,13 @@ USER ${USER}
 WORKDIR ${HOME}
 RUN echo ${USER}
 
-# Install pnpm
+# install pnpm
 RUN wget -qO- https://get.pnpm.io/install.sh | sh -
-
 
 # zsh setup 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" <<< $'\n'
 
-# Update the PATH in the ~/.zshrc
+# updating the pnpm PATH variable for the z shell
 RUN echo '# pnpm' >> ~/.zshrc \
     && echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc \
     && echo 'case ":$PATH:" in' >> ~/.zshrc \
@@ -91,7 +96,7 @@ RUN echo '# pnpm' >> ~/.zshrc \
     && echo '  *) export PATH="$PNPM_HOME:$PATH" ;;' >> ~/.zshrc \
     && echo 'esac' >> ~/.zshrc
 
-# Add alias confs to the .zshrc file
+# some handy aliases
 RUN echo 'alias \
     c="clear" \
     ka="killall" \
@@ -117,7 +122,18 @@ RUN echo 'alias \
     ' >> ~/.zshrc
 
 
-# source the zshell 
-RUN source ~/.zshrc
+# nvm setup
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | sh
+ 
+# nvm path setup
+RUN echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.zshrc
+
+# base packages
+RUN source ~/.zshrc && pnpm i -g typescript ts-node eslint prettier
+
+#ENTRYPOINT [ "/bin/zsh" ]
+#CMD ["-l"]
 
 CMD ["zsh","-c", "sleep infinity"]
