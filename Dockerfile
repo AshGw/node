@@ -3,17 +3,20 @@ ARG NODE_TAG="lts-bullseye"
 FROM node:${NODE_TAG}
 LABEL description="Node perfect Container" 
 MAINTAINER ashgw
+
+# current shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# switch to root for base setup
 USER root
-
-# Update repository
+ARG USER=ashgw
+# Update repo
 RUN apt-get update --fix-missing
 
 # necessary packages 
 RUN apt-get -y install wget curl git zsh sudo neovim
 
-#playwright dependencies for the graphical interface from within the container 
+# playwright dependencies so browsers work from within the container 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     gconf-service \
@@ -56,22 +59,21 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     lsb-release \
     xdg-utils
 
-# user setup
-ENV HOME=/home/ashx\
-    SHELL=/bin/zsh \
+# environment setup
+ENV SHELL=/bin/zsh \
     NODE_ENV=development \
-    USER=ashx \
-    LANG=en_US.UTF-8 \
+    HOME=/home/${USER}\
     LANGUAGE=en_US.UTF-8 \
-    LC_ALL=en_US.UTF-8 
-    
+    LC_ALL=en_US.UTF-8 \ 
+    LANG=en_US.UTF-8
+
 # for passwordless sudo 
-RUN useradd -rm -d /home/${USER} -s /bin/bash -g root -G sudo -u 1001 ${USER} && chmod 0440 /etc/sudoers.d/$USERNAME
+RUN useradd -rm -d ${HOME} -s /bin/bash -g root -G sudo -u 1001 ${USER} && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN echo "$USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USER}-nopasswd
 
 # change the the user 
 USER ${USER} 
-WORKDIR /home/${USER}
+WORKDIR ${HOME}
 RUN echo ${USER}
 
 # Install pnpm
@@ -93,8 +95,6 @@ RUN echo '# pnpm' >> ~/.zshrc \
 RUN echo 'alias \
     c="clear" \
     ka="killall" \
-    sdn="shutdown -h now" \
-    e="$EDITOR" \
     a="apt-get" \
     i="sudo apt-get install" \
     g="git" \
@@ -118,11 +118,6 @@ RUN echo 'alias \
 
 
 # source the zshell 
-RUN source. ~/.zshrc
+RUN source ~/.zshrc
 
-
-# Configure container startup
-# CMD ["/bin/zsh"]
-
-#ENTRYPOINT [ "/bin/zsh" ]
-CMD ["zsh", "-c", "sleep infinity"]
+CMD ["zsh","-c", "sleep infinity"]
