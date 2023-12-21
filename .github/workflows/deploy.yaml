@@ -19,4 +19,4 @@ jobs:
       - name: Login
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ashgw --password-stdin
       - name: Pushing to the hub
-        run: docker push ashgw/node:${{ steps.get_version.outputs.version }}
+        run: docker push ashgw/node:latest
