@@ -5,7 +5,8 @@ on:
     branches:
       - main
       - x
-
+      
+jobs:
   docker:
     if: github.event_name == 'push'
     needs: run-tests-2
@@ -19,6 +20,6 @@ on:
       - name: Building & tagging
         run: docker build -t ashgw/litecrypt:${{ steps.get_version.outputs.version }} scripts/docker-build
       - name: Login
-        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ashgw --password-stdin
       - name: Pushing to the hub
         run: docker push ashgw/litecrypt:${{ steps.get_version.outputs.version }}
