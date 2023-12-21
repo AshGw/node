@@ -1,0 +1,22 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Version extraction
+        id: get_version
+        run: echo "::set-output name=version::$(cat version)"
+      - name: Building & tagging
+        run: docker build -t ashgw/node:${{ steps.get_version.outputs.version }} .
+      - name: Login
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ashgw --password-stdin
+      - name: Pushing to the hub
+        run: docker push ashgw/node:${{ steps.get_version.outputs.version }}
