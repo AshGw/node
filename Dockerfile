@@ -4,14 +4,15 @@ FROM node:${NODE_TAG}
 LABEL description="Node perfect Container" 
 MAINTAINER ashgw
 
-# current shell
+# current config shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # switch to root for initial setup
 USER root
 
 # the working user 
-ARG USER=ashgw
+ARG USER=node-x
+
 # Update repo
 RUN apt-get update --fix-missing
 
@@ -22,7 +23,7 @@ RUN apt-get -y install wget curl git zsh sudo neovim locales
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
     && locale-gen
 
-# dependencies so browsers show with no distortion  from within the container to the host machine 
+# dependencies so playwright, selenium.. browsers show with no distortion  from within the container to the host machine 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     gconf-service \
@@ -82,19 +83,8 @@ USER ${USER}
 WORKDIR ${HOME}
 RUN echo ${USER}
 
-# install pnpm
-RUN wget -qO- https://get.pnpm.io/install.sh | sh -
-
 # zsh setup 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" <<< $'\n'
-
-# updating the pnpm PATH variable for the z shell
-RUN echo '# pnpm' >> ~/.zshrc \
-    && echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc \
-    && echo 'case ":$PATH:" in' >> ~/.zshrc \
-    && echo '  *":$PNPM_HOME:"*) ;;' >> ~/.zshrc \
-    && echo '  *) export PATH="$PNPM_HOME:$PATH" ;;' >> ~/.zshrc \
-    && echo 'esac' >> ~/.zshrc
 
 # some handy aliases
 RUN echo 'alias \
@@ -104,6 +94,7 @@ RUN echo 'alias \
     i="sudo apt-get install" \
     g="git" \
     v="nvim" \
+    p="pnpm" \
     ts="pnpm ts-node" \
     t="touch" \
     reload=". ~/.zshrc" \
@@ -121,6 +112,17 @@ RUN echo 'alias \
     ip="ip -color=auto" \
     ' >> ~/.zshrc
 
+# install pnpm
+RUN wget -qO- https://get.pnpm.io/install.sh | sh -
+
+# updating the pnpm PATH variable for the z shell
+RUN echo '# pnpm' >> ~/.zshrc \
+    && echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc \
+    && echo 'case ":$PATH:" in' >> ~/.zshrc \
+    && echo '  *":$PNPM_HOME:"*) ;;' >> ~/.zshrc \
+    && echo '  *) export PATH="$PNPM_HOME:$PATH" ;;' >> ~/.zshrc \
+    && echo 'esac' >> ~/.zshrc
+
 
 # nvm setup
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | sh
@@ -132,6 +134,7 @@ RUN echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc \
 
 # base packages
 RUN source ~/.zshrc && pnpm i -g typescript ts-node eslint prettier
+
 
 #ENTRYPOINT [ "/bin/zsh" ]
 #CMD ["-l"]
