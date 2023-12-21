@@ -1,7 +1,0 @@
-version: '3'
-services:
-  node-app:
-    image: mynode:latest
-    command: bash -c "trap : TERM INT; sleep infinity & wait"
-    stdin_open: true
-    tty: true
